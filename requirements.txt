@@ -8,3 +8,7 @@ chromadb
 sentence-transformers 
 langchain-community
 langchain-openai
+chinese-converter==1.1.1
+langchain-huggingface
+stqdm
+langchainhub
