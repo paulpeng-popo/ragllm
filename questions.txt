@@ -48,3 +48,50 @@ Q: 影像式喉頭鏡的操作步驟？
 Q: 影像式插管探條的準備動作？
 1. 將插管探條彎折至合適角度，約60～90度角，並將插管探條外部上適當之潤滑；打開電源檢視螢幕是否正常。
 2. 以下顎上提方式，打開病患嘴巴。
+
+
+=== English Example ===
+Q: Is Uniblocker resuable？
+Do not reuse. Discard after one procedure. Structural integrity and / or function 
+may be impaired through reuse or cleaning
+
+Q: What is Uniblocker？
+UNIBLOCKER and FUGGIANO Blocker are devices capable of blocking either the 
+left or right bronchus through an endotracheal tube. They are manufactured using 
+polyurethane material equipped with a locking assembly, a silicone cuff at the tip, 
+and braided stainless steel mesh in the inner wall.
+UNIBLOCKER and FUGGIANO Blocker incorporate a flexible high-torque blocker 
+shaft.
+UNIBLOCKER and FUGGIANO Blocker are supplied with a unique swivel connector 
+with a port for fiberoptic bronchoscopy while connected to the anesthesia circuit.
+Stylets are equipped at the tip and distal end of the blocker tube to maintain its 
+shape during transportation. Stylet B at the distal end can be used for blocker tube 
+insertion.
+
+Q: How should I do when StyletViu poor picture quality？
+Clean stylettip with a sterile, clean, soft wipe.
+Ensure that both the stylet and the connector are fully inserted into the monitor ports.
+If the steps above to do not correct the picture quality, contact StyletViu Customer Care.
+
+
+
+=== May not answer correctly ===
+Q: The AirSim Multi is ideal for training a range of techniques including what？
+1. Single naso-tracheal intubation.
+2. Naso gastric tube insertion
+3. Bag and Mask ventilation techniques
+4. Full range of supraglottic devices
+5. Direct laryngoscopy
+6. Endotracheal tube insertion
+7. Awake fibre optic examination
+8. Single lung isolation techniques
+9. Combo tube insertion
+
+Q: What is the recommend equipment sizes for optimal performance of AirSim Multi？
+1. 7.0-7.5mm ID for nasal intubation
+2. 8.0-9.0mm ID for oral intubation
+3. Size 3-5 for LMA laryngeal masks
+4. Similar respective sizes for other supraglottic devices
+
+Q: Can LMA ProSealTM protect the patient from the effects of regurgitation and aspiration？
+The LMA ProSealTM does not protect the patient from the effects of regurgitation and aspiration.

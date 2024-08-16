@@ -12,12 +12,12 @@ warnings.filterwarnings("ignore", message="You are using `torch.load` with `weig
 
 # Import third-party libraries
 import jieba
-import hanlp
+# import hanlp
 import pandas as pd
 from chinese_converter import to_traditional
 
-electra_base = hanlp.pretrained.mtl.CLOSE_TOK_POS_NER_SRL_DEP_SDP_CON_ELECTRA_BASE_ZH
-tokenizer = hanlp.load(electra_base, devices=0)
+# electra_base = hanlp.pretrained.mtl.CLOSE_TOK_POS_NER_SRL_DEP_SDP_CON_ELECTRA_BASE_ZH
+# tokenizer = hanlp.load(electra_base, devices=0)
 
 # Import Streamlit
 import streamlit as st
@@ -28,7 +28,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain.storage import InMemoryStore
 from langchain.prompts import PromptTemplate
-from langchain.retrievers import ParentDocumentRetriever
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import ParentDocumentRetriever, EnsembleRetriever
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -54,7 +55,7 @@ st.title("亞仕丹 RAG QA 展示系統")
 
 mode = st.sidebar.selectbox(
     "使用模型",
-    ("qwen2:7b", "llama3.1:8b", "llama3:8b", "openAI"),
+    ("qwen2:7b", "llama3.1:8b", "llama3:8b"),
 )
 st.sidebar.info(f"更換至 {mode} 模型")
 
@@ -65,8 +66,8 @@ def define_llm():
         return ChatOllama(model="llama3.1:8b")
     elif mode == "llama3:8b":
         return ChatOllama(model="llama3:8b")
-    elif mode == "openAI":
-        return ChatOpenAI(model="gpt-4o")
+    # elif mode == "openAI":
+    #     return ChatOpenAI(model="gpt-4o")
 
 def add_prompt(llm):
     ENGLISH_TEMPLATE = """
@@ -127,10 +128,7 @@ def query_llm(retriever, query):
         }
         for doc in ref_docs
     ]
-    expander = st.expander("查看參考文件")
-    for ref in references:
-        expander.info(f"{ref['filename']} 第 {ref['page']} 頁\n\n{ref['content']}")
-    st.session_state.messages.append((query, result))
+    st.session_state.messages.append((query, result, references))
     return result
 
 def show_created_files():
@@ -146,24 +144,24 @@ def show_created_files():
     )
     st.sidebar.dataframe(df)
         
-class JiebaTextSplitter(TextSplitter):
-    def __init__(self, separator: str = "\n\n", **kwargs):
-        super().__init__(**kwargs)
-        self._separator = separator
+# class JiebaTextSplitter(TextSplitter):
+#     def __init__(self, separator: str = "\n\n", **kwargs):
+#         super().__init__(**kwargs)
+#         self._separator = separator
 
-    def split_text(self, text: str):
-        splits = jieba.lcut(text)
-        return self._merge_splits(splits, self._separator)
+#     def split_text(self, text: str):
+#         splits = jieba.lcut(text)
+#         return self._merge_splits(splits, self._separator)
     
-class HanLPTextSplitter(TextSplitter):
-    def __init__(self, separator: str = "\n\n", **kwargs):
-        super().__init__(**kwargs)
-        self._separator = separator
+# class HanLPTextSplitter(TextSplitter):
+#     def __init__(self, separator: str = "\n\n", **kwargs):
+#         super().__init__(**kwargs)
+#         self._separator = separator
 
-    def split_text(self, text: str):
-        doc = tokenizer(text, tasks=["tok/fine"])
-        splits = doc["tok/fine"]
-        return self._merge_splits(splits, self._separator)
+#     def split_text(self, text: str):
+#         doc = tokenizer(text, tasks=["tok/fine"])
+#         splits = doc["tok/fine"]
+#         return self._merge_splits(splits, self._separator)
     
 def split_documents(documents):
     Recursivesplitter = RecursiveCharacterTextSplitter(
@@ -172,14 +170,14 @@ def split_documents(documents):
         chunk_overlap=100,
         keep_separator=False,
     )
-    JiebaSplitter = JiebaTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=100,
-    )
-    HanLPSplitter = HanLPTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=100,
-    )
+    # JiebaSplitter = JiebaTextSplitter(
+    #     chunk_size=1500,
+    #     chunk_overlap=100,
+    # )
+    # HanLPSplitter = HanLPTextSplitter(
+    #     chunk_size=1500,
+    #     chunk_overlap=100,
+    # )
     docs = Recursivesplitter.split_documents(documents)
     return docs
 
@@ -225,7 +223,36 @@ def parent_doc_retrevier(docs):
         docstore=store,
         child_splitter=child_splitter,
     )
-    retriever.add_documents(docs)
+    
+    doc_list = [Path(doc.metadata["source"]).name for doc in docs]
+    doc_list = list(set(doc_list))
+    
+    seen_docs = []
+    with open("file_list.txt", "r") as f:
+        for line in f:
+            seen_docs.append(line.strip())
+
+    new_docs = [doc for doc in doc_list if doc not in seen_docs]
+    doc_objects = [doc for doc in docs if Path(doc.metadata["source"]).name in new_docs]
+    
+    if len(doc_objects) == 0:
+        vectorstore = Chroma(
+            embedding_function=embeddings,
+            collection_name="pdf_retriever"
+        )
+        retriever = ParentDocumentRetriever(
+            vectorstore=vectorstore,
+            docstore=store,
+            child_splitter=child_splitter,
+        )
+        retriever.add_documents(docs)
+        return retriever
+    
+    retriever.add_documents(doc_objects)
+    with open("file_list.txt", "w") as f:
+        for item in doc_list:
+            f.write("%s\n" % item)
+
     # sub_docs = vectorstore.similarity_search("駝人影像式插管組包含哪些零件？")
     # for sub_doc in sub_docs:
     #     print(sub_doc.page_content)
@@ -235,32 +262,47 @@ def parent_doc_retrevier(docs):
     #     print(doc.page_content)
     return retriever
 
+def create_ensemble_retriever(docs):
+    model_name = "BAAI/bge-m3"
+    embeddings = HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs={"device": "cuda"}
+    )
+    # 稀疏檢索
+    bm25_retriever = BM25Retriever.from_documents(
+        docs,
+        preprocess_func=jieba.lcut_for_search
+    )
+    bm25_retriever.k = 2
+    # 密集檢索
+    vectordb = Chroma.from_documents(
+        docs,
+        persist_directory=VECTOR_STORE_DIR.as_posix(),
+        embedding=embeddings,
+    )
+    faiss_retriever = vectordb.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"score_threshold": 2.0, 'k': 2}
+    )
+    # initialize the ensemble retriever
+    ensemble_retriever = EnsembleRetriever(
+        retrievers=[bm25_retriever, faiss_retriever], weights=[0.5, 0.5]
+    )
+    return ensemble_retriever
+
 def process_documents():
     file_loader = PyPDFDirectoryLoader(
         path=PDF_DATA_DIR.as_posix(),
         glob="**/*.pdf"
     )
     try:
-        with st.status("製作向量資料庫...", expanded=True) as status:
-            st.write("讀取文件...")
+        with st.spinner("製作向量資料庫..."):
             documents = file_loader.load()
-            st.write("分割資料...")
             docs = split_documents(documents)
-            st.write("建立 Retriever...")
             # st.session_state.retriever = create_retriever(docs)
-            st.session_state.retriever = parent_doc_retrevier(docs)
-            status.update(
-                label="向量資料庫製作完成",
-                state="complete",
-                expanded=False
-            )
-        file_list = [doc.metadata["source"] for doc in documents]
-        file_list = list(set(file_list))
-        file_list = [Path(vecfile).name for vecfile in file_list]
-        # save to file
-        with open("file_list.txt", "w") as f:
-            for item in file_list:
-                f.write("%s\n" % item)
+            # st.session_state.retriever = parent_doc_retrevier(docs)
+            st.session_state.retriever = create_ensemble_retriever(docs)
+        st.success("資料庫製作完成")
     except Exception as e:
         st.error(f"處理文件時出現錯誤: {e}")
 
@@ -298,8 +340,11 @@ def initialize_session(uploader=False):
         st.success("Retriever 已建立")
 
 def display_chat_history():
-    for user_msg, ai_msg in st.session_state.messages:
+    for user_msg, ai_msg, references in st.session_state.messages:
         st.chat_message("User").write(user_msg)
+        expander = st.expander("查看參考文件")
+        for ref in references:
+            expander.info(f"{ref['filename']} 第 {ref['page']} 頁\n\n{ref['content']}")
         st.chat_message("AI").write(ai_msg)
 
 def main():
