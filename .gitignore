@@ -4,3 +4,6 @@ data/vector_store/
 data/newdata/
 data/pdfdata/
 file_list.txt
+.idea
+*.pdf
+*.pptx

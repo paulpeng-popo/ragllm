@@ -8,7 +8,8 @@ import warnings
 
 # Filter specific warning messages
 warnings.filterwarnings("ignore", message="`clean_up_tokenization_spaces` was not set", category=FutureWarning)
-warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`", category=FutureWarning)
+warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`",
+                        category=FutureWarning)
 
 # Import third-party libraries
 import jieba
@@ -38,12 +39,18 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTex
 from langchain_text_splitters.base import TextSplitter
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_models import ChatOllama
-
-
+import pdfplumber
+from PIL import Image
+import io
+import pytesseract
+from rapidocr_onnxruntime import RapidOCR
+engine = RapidOCR()
 # File paths
-DATA_DIR = Path(__file__).resolve().parent.joinpath("data")
+DATA_DIR = Path(__file__).resolve().parent.joinpath(".")
 VECTOR_STORE_DIR = DATA_DIR.joinpath("vector_store")
 PDF_DATA_DIR = DATA_DIR.joinpath("pdfdata")
+
+print(PDF_DATA_DIR)
 
 # Project setup
 st.set_page_config(
@@ -59,6 +66,7 @@ mode = st.sidebar.selectbox(
 )
 st.sidebar.info(f"更換至 {mode} 模型")
 
+
 def define_llm():
     if mode == "qwen2:7b":
         return ChatOllama(model="qwen2:7b")
@@ -68,6 +76,7 @@ def define_llm():
         return ChatOllama(model="llama3:8b")
     # elif mode == "openAI":
     #     return ChatOpenAI(model="gpt-4o")
+
 
 def add_prompt(llm):
     ENGLISH_TEMPLATE = """
@@ -103,7 +112,7 @@ def add_prompt(llm):
         Given the context information, answer the query.
         Query: {query}
     """
-    
+
     prompt_template = RAG_TEMPLATE
     input_prompt = PromptTemplate(
         input_variables=["query", "context"],
@@ -111,6 +120,7 @@ def add_prompt(llm):
     )
 
     return input_prompt | llm | StrOutputParser()
+
 
 def query_llm(retriever, query):
     llm = define_llm()
@@ -131,6 +141,7 @@ def query_llm(retriever, query):
     st.session_state.messages.append((query, result, references))
     return result
 
+
 def show_created_files():
     file_list = []
     with open("file_list.txt", "r") as f:
@@ -143,7 +154,8 @@ def show_created_files():
         index=range(1, len(file_list) + 1)
     )
     st.sidebar.dataframe(df)
-        
+
+
 # class JiebaTextSplitter(TextSplitter):
 #     def __init__(self, separator: str = "\n\n", **kwargs):
 #         super().__init__(**kwargs)
@@ -152,7 +164,7 @@ def show_created_files():
 #     def split_text(self, text: str):
 #         splits = jieba.lcut(text)
 #         return self._merge_splits(splits, self._separator)
-    
+
 # class HanLPTextSplitter(TextSplitter):
 #     def __init__(self, separator: str = "\n\n", **kwargs):
 #         super().__init__(**kwargs)
@@ -162,7 +174,71 @@ def show_created_files():
 #         doc = tokenizer(text, tasks=["tok/fine"])
 #         splits = doc["tok/fine"]
 #         return self._merge_splits(splits, self._separator)
-    
+
+
+def extract_tables_from_pdf(pdf_path, page_number):
+    tables = []
+    with pdfplumber.open(pdf_path) as pdf:
+        # print("page_number:", pdf.pages[page_number])
+        tables.extend(pdf.pages[page_number].extract_tables())
+    return tables
+
+
+from pypdf import PdfReader
+import fitz  # PyMuPDF
+import pytesseract
+from PIL import Image, ImageStat
+import io, os
+
+def is_image_black(image):
+    # 检查图像是否是全黑
+    stat = ImageStat.Stat(image)
+    if sum(stat.extrema[0]) == 0:
+        return True
+    return False
+
+def extract_images_and_text_from_pdf(pdf_path, page_number):
+    pdf_name = os.path.basename(pdf_path)
+    pdf_name = os.path.splitext(pdf_name)[0]
+    # 打开 PDF 文件
+    pdf_document = fitz.open(pdf_path)
+    page = pdf_document.load_page(page_number)
+    images_with_text = []
+    # 提取页面中的图片
+    image_list = page.get_images(full=True)
+    for img_index, img in enumerate(image_list):
+        xref = img[0]
+        base_image = pdf_document.extract_image(xref)
+        image_bytes = base_image["image"]
+        image_ext = base_image["ext"]
+
+        # 将图像加载到 PIL 图像对象
+        image = Image.open(io.BytesIO(image_bytes))
+
+        # 检查是否为全黑图像
+        if is_image_black(image):
+            continue  # 跳过全黑图像
+        # 将图片存储为文件
+        image_filename = f"{pdf_name}_image_{page_number + 1}_{img_index + 1}.{image_ext}"
+        with open(image_filename, "wb") as image_file:
+            image_file.write(image_bytes)
+
+        # 打开图像文件进行 OCR
+        # image = Image.open(io.BytesIO(image_bytes))
+        text = pytesseract.image_to_string(image)
+
+        # 将图片和对应的文字一起存储
+        images_with_text.append({'image_filename': image_filename, 'text': text})
+
+    # with PdfReader(pdf_path) as pdf:
+    #     page = pdf.pages[page_number]
+    #     for i in page.images:
+    #         with open(i.name, "wb") as f:
+    #             f.write(i.data)
+
+    return images_with_text
+
+
 def split_documents(documents):
     Recursivesplitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", "。"],
@@ -180,6 +256,7 @@ def split_documents(documents):
     # )
     docs = Recursivesplitter.split_documents(documents)
     return docs
+
 
 def create_retriever(docs):
     model_name = "BAAI/bge-m3"
@@ -199,6 +276,7 @@ def create_retriever(docs):
     )
     ## https://api.python.langchain.com/en/latest/vectorstores/langchain_community.vectorstores.chroma.Chroma.html
     return retriever
+
 
 def parent_doc_retrevier(docs):
     model_name = "BAAI/bge-m3"
@@ -223,10 +301,10 @@ def parent_doc_retrevier(docs):
         docstore=store,
         child_splitter=child_splitter,
     )
-    
+
     doc_list = [Path(doc.metadata["source"]).name for doc in docs]
     doc_list = list(set(doc_list))
-    
+
     seen_docs = []
     with open("file_list.txt", "r") as f:
         for line in f:
@@ -234,7 +312,7 @@ def parent_doc_retrevier(docs):
 
     new_docs = [doc for doc in doc_list if doc not in seen_docs]
     doc_objects = [doc for doc in docs if Path(doc.metadata["source"]).name in new_docs]
-    
+
     if len(doc_objects) == 0:
         vectorstore = Chroma(
             embedding_function=embeddings,
@@ -247,7 +325,7 @@ def parent_doc_retrevier(docs):
         )
         retriever.add_documents(docs)
         return retriever
-    
+
     retriever.add_documents(doc_objects)
     with open("file_list.txt", "w") as f:
         for item in doc_list:
@@ -261,6 +339,7 @@ def parent_doc_retrevier(docs):
     # for doc in retrieved_docs:
     #     print(doc.page_content)
     return retriever
+
 
 def create_ensemble_retriever(docs):
     model_name = "BAAI/bge-m3"
@@ -290,6 +369,7 @@ def create_ensemble_retriever(docs):
     )
     return ensemble_retriever
 
+
 def process_documents():
     file_loader = PyPDFDirectoryLoader(
         path=PDF_DATA_DIR.as_posix(),
@@ -298,13 +378,36 @@ def process_documents():
     try:
         with st.spinner("製作向量資料庫..."):
             documents = file_loader.load()
+            all_doc = []
+            for doc in documents:
+                pdf_path = dict(doc)["metadata"]["source"]
+                page_num = dict(doc)["metadata"]["page"]
+                # 提取PDF中的表格数据
+                tables = extract_tables_from_pdf(pdf_path, page_num)
+
+                # 提取PDF中的图片和文字
+                images_with_text = extract_images_and_text_from_pdf(pdf_path, page_num)
+
+                # 将表格和图片（含文字）数据附加到文档元数据中
+                doc.metadata['tables'] = tables
+                doc.metadata['images_with_text'] = images_with_text
+
+                # print("doc", doc.metadata)
+                all_doc.append(doc)
+            print("all_doc:", all_doc)
             docs = split_documents(documents)
             # st.session_state.retriever = create_retriever(docs)
             # st.session_state.retriever = parent_doc_retrevier(docs)
             st.session_state.retriever = create_ensemble_retriever(docs)
         st.success("資料庫製作完成")
+        print("資料庫製作完成")
     except Exception as e:
+        print(e)
         st.error(f"處理文件時出現錯誤: {e}")
+
+
+
+
 
 def initialize_session(uploader=False):
     if "messages" not in st.session_state:
@@ -313,7 +416,7 @@ def initialize_session(uploader=False):
             process_documents()
             st.success("Retriever 已建立")
     show_created_files()
-    
+
     if uploader:
         # 上傳文件建立 Retriever
         st.session_state.source_docs = st.sidebar.file_uploader(
@@ -326,9 +429,9 @@ def initialize_session(uploader=False):
         for source_doc in st.session_state.source_docs:
             # 寫入暫存資料夾
             with tempfile.NamedTemporaryFile(
-                delete=False,
-                dir=PDF_DATA_DIR.as_posix(),
-                suffix=".pdf"
+                    delete=False,
+                    dir=PDF_DATA_DIR.as_posix(),
+                    suffix=".pdf"
             ) as tmp_file:
                 tmp_file.write(source_doc.read())
             # 處理文件
@@ -339,6 +442,7 @@ def initialize_session(uploader=False):
                 temp_file.unlink()
         st.success("Retriever 已建立")
 
+
 def display_chat_history():
     for user_msg, ai_msg, references in st.session_state.messages:
         st.chat_message("User").write(user_msg)
@@ -346,6 +450,7 @@ def display_chat_history():
         for ref in references:
             expander.info(f"{ref['filename']} 第 {ref['page']} 頁\n\n{ref['content']}")
         st.chat_message("AI").write(ai_msg)
+
 
 def main():
     initialize_session()
@@ -360,5 +465,8 @@ def main():
             response = "未建立 Retriever"
         st.chat_message("AI").write(to_traditional(response))
 
+
 if __name__ == "__main__":
-    main()
+    process_documents()
+
+    # main()
