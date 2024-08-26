@@ -465,6 +465,22 @@ def main():
             response = "未建立 Retriever"
         st.chat_message("AI").write(to_traditional(response))
 
+from fpdf import FPDF
+def txt_to_pdf(txt_file, pdf_file):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    with open(txt_file, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    for line in lines:
+        pdf.multi_cell(0, 10, line)
+
+    pdf.output(pdf_file)
+
 
 if __name__ == "__main__":
     process_documents()

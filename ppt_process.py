@@ -2,29 +2,6 @@ from pptx import Presentation
 from pptx.shapes.picture import Picture
 from PIL import Image, ImageStat
 import pytesseract
-# file_path = "pptdata/影像化插管.pptx"
-# prs = Presentation(file_path)
-# index = 1
-# for slide in prs.slides:
-#     resp = ""
-#     table_data = []
-#     for shape in slide.shapes:
-#         if shape.has_text_frame:
-#             resp += shape.text.strip() + "\n"
-#             print(resp)
-#         elif shape.has_table:
-#             for row in shape.table.rows:
-#                 row_data = []
-#                 for cell in row.cells:
-#                     c = cell.text
-#                     row_data.append(c)
-#                 table_data.append(row_data)
-#         elif isinstance(shape, Picture):
-#             with open(f'{index}.jpg', 'wb') as f:
-#                 f.write(shape.image.blob)
-#                 index += 1
-#     print(resp)
-#     print(table_data)
 
 import os, io
 from pptx import Presentation
@@ -38,14 +15,13 @@ import streamlit as st
 #     return False
 # 假设你有一个类似的函数来提取图片和文字
 def extract_text_from_slide(slide):
-    def extract_text_from_slide(slide):
-        """提取单张幻灯片的文本内容"""
-        slide_text = []
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    slide_text.append(paragraph.text)
-        return "\n".join(slide_text)
+    """提取单张幻灯片的文本内容"""
+    slide_text = []
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            for paragraph in shape.text_frame.paragraphs:
+                slide_text.append(paragraph.text)
+    return "\n".join(slide_text)
 
 def extract_tables_from_slide(slide):
     """提取单张幻灯片的表格数据"""
@@ -82,7 +58,7 @@ def extract_images_from_slide(slide, slide_number,pptx_name):
 
             try:
                 # 件进行 OCR
-                text = pytesseract.image_to_string(image)
+                text = pytesseract.image_to_string(image, lang= "chi_tra+eng")
             except Exception as e:
                 print(f"Error processing image on slide {slide_number}: {e}")
             # 将图片和对应的文字一起存储
@@ -135,6 +111,8 @@ def process_pptx_documents(pptx_dir):
     except Exception as e:
         print(e)
         # st.error(f"處理文件時出現錯誤: {e}")
+
+
 
 
 # 示例用法

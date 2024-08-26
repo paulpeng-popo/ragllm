@@ -7,3 +7,6 @@ file_list.txt
 .idea
 *.pdf
 *.pptx
+*.txt
+*.docx
+__pycache__
