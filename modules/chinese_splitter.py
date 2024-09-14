@@ -1,11 +1,11 @@
 import re
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union, Literal
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 def _split_text_with_regex_from_end(
-    text: str, separator: str, keep_separator: bool
+    text: str, separator: str, keep_separator: Union[bool, Literal["start", "end"]]
 ) -> List[str]:
     # Now that we have the separator, split the text
     if separator:

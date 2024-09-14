@@ -51,10 +51,6 @@ Q: 影像式插管探條的準備動作？
 
 
 === English Example ===
-Q: Is Uniblocker resuable？
-Do not reuse. Discard after one procedure. Structural integrity and / or function 
-may be impaired through reuse or cleaning
-
 Q: What is Uniblocker？
 UNIBLOCKER and FUGGIANO Blocker are devices capable of blocking either the 
 left or right bronchus through an endotracheal tube. They are manufactured using 
@@ -68,11 +64,14 @@ Stylets are equipped at the tip and distal end of the blocker tube to maintain i
 shape during transportation. Stylet B at the distal end can be used for blocker tube 
 insertion.
 
-Q: How should I do when StyletViu poor picture quality？
+Q: How should I do when StyletViu has poor picture quality？
 Clean stylettip with a sterile, clean, soft wipe.
 Ensure that both the stylet and the connector are fully inserted into the monitor ports.
 If the steps above to do not correct the picture quality, contact StyletViu Customer Care.
 
+Q: How should I do when StyletViu has loose component or poorly fitting connection？
+Do not use device
+Contact StyletViu Customer Care for return.
 
 
 === May not answer correctly ===
@@ -95,3 +94,82 @@ Q: What is the recommend equipment sizes for optimal performance of AirSim Multi
 
 Q: Can LMA ProSealTM protect the patient from the effects of regurgitation and aspiration？
 The LMA ProSealTM does not protect the patient from the effects of regurgitation and aspiration.
+
+Q: Is Uniblocker resuable？
+Do not reuse. Discard after one procedure. Structural integrity and / or function 
+may be impaired through reuse or cleaning
+
+
+====================
+對外資料庫
+
+1.洗腎導管操作影片
+2.使用氣切人工鼻注意事項
+3.蘇打石灰成分為什麼含水
+4.蘇打石灰的英文怎麼唸
+5.蘇打石灰臨床使用案例
+6.蘇打石灰作用機轉公式
+7.emma在臨床使用的案例
+8.喉頭鏡泡消液是否有限制
+9.ETCO2跟PaCO2的數值差異是多少
+10.Non-kinking Endo內的不銹鋼彈簧會影響到x光影像嗎
+11.Uniblocker支氣管內管阻隔器健保碼多少
+12.Uniblocker支氣管內管阻隔器適應症？
+13.Uniblocker支氣管內管阻隔器操作影片
+14.blocker支氣管內管阻隔器使用條件
+15.反熱散溫毯墊防止熱散失效果比較好，如果患者術中發燒了，是不是會造成患者比較難降溫？
+16.如何固定使用喉頭面罩咬口器
+17.泌尿科手術式失溫說明
+18.請問人工鼻可以使用多久
+19.內管型氣切建議多久要清潔或更換內管
+20.喉頭鏡使用條件
+
+====================
+公司資料庫
+
+1.駝人ＬＭＡ產品目錄
+2.駝人氣管內管健保碼、自費
+3.駝人ＬＭＡ有哪些適應症
+4.駝人加強型氣管內管彷單資訊
+5.駝人加強型氣管內管的價格表
+6.駝人氣管內管正航碼
+7.駝人授權書
+8.駝人雙腔氣管內管衛署
+9.拋棄式矽膠喉頭面罩目錄及仿單
+10.蘇打石灰公司授權代理資料
+11.高雄榮總蘇打石灰報價表
+12.查詢MD喉頭鏡葉片四號庫存
+13.Rota-Trach 一般氣切上課資料
+14.Rota-Trach 一般無囊氣切7.5 剩多少庫存
+15.Rota-Trach 一般氣切健保點多少
+16.重複使用 LMA，建議消毒方式
+17.洗腎導管是否有抗菌成份
+18.Emma公司產品跟其它家有什麼不同？
+19.Emma產品特性
+20.Emma產品目錄
+21.Emma產品適應症
+22.emma校正方式
+23.EMMA .INF接頭可否用於高頻率呼吸機
+24.金泰克軟鏡跟金泰克喉頭鏡鏡頭是否可以通用
+25.金泰克5號葉片的彎度角度
+26.影像插管照片/影片是否可上傳醫院系統
+27.軟鏡建議DLT最小可放多少Fr.
+26.請問這個月市立仁愛叫了多少葉片
+27.Sharon中山附醫麻醉科軟鏡暫借單號
+28.部立彰化的影像式喉頭鏡是捐贈機嗎
+29.Uniblocker支氣管內管阻隔器型錄
+30.請問Uniblocker支氣管內管阻隔器產品比較表？
+31.請問Uniblocker支氣管內管阻隔器原廠資料？
+32.請問台大Bloker的 UDI碼
+33.請問Uniblocker支氣管內管阻隔器規格表？
+34.請問Uniblocker支氣管內管阻隔器區台大報價單？
+35.請問TSCI溫毯墊不織布的和反熱散的材質的差異？
+36.溫毯機直流電多少
+37.溫毯墊規格有哪幾種
+38.反熱散的溫毯墊產品特色是？
+39.不織布溫毯墊上半身也有綁帶嗎
+40.私購設備的話，保固期有多久
+41.Sharon的補休還有多少
+42.靜脈照射儀模式
+43.輸血加溫器高/中低流量差別
+44.公司業務手冊

@@ -1,6 +1,8 @@
 .DS_Store
 .venv/
-data/vector_store/
-data/newdata/
-data/pdfdata/
-file_list.txt
+**/__pycache__/
+.mypy_cache/
+selenium_loader/
+chromadb/
+data/*
+!data/db.sqlite

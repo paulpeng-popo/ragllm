@@ -1,0 +1,15 @@
+credentials:
+  usernames:
+    root:
+      email: example@gmail.com
+      failed_login_attempts: 0
+      logged_in: False
+      name: root
+      password: "123"
+cookie:
+  expiry_days: 7
+  key: rag_app
+  name: rag_app_cookie
+pre-authorized:
+  emails:
+  - example@gmail.com
