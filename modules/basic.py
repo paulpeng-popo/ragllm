@@ -5,8 +5,8 @@ from pathlib import Path
 
 PARENT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = PARENT_DIR.joinpath("config.yaml")
-DATA_DIR = PARENT_DIR.joinpath("data").joinpath("pdfdata")
-DATABASE_PATH = PARENT_DIR.joinpath("data").joinpath("db.sqlite")
+DATA_DIR = PARENT_DIR.joinpath("data").joinpath("medical")
+DATABASE_PATH = PARENT_DIR.joinpath("db.sqlite")
 
 
 def nav_bar():

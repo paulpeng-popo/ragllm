@@ -137,6 +137,7 @@ def get_human_retriever(question):
         st.session_state.query = "retriever"
         return st.session_state.query
     rows_we_need = [row for row in data if row[1] == question]
+    print(rows_we_need)
     res = requests.post(
         "http://140.116.245.154:8510/human",
         json={
@@ -163,11 +164,6 @@ def main():
     )
     st.title("RAG QA System")
     nav_bar()
-    
-    st.session_state.model_mode = st.session_state.get("model_mode", "qwen2:7b")
-    st.session_state.temperature = st.session_state.get("temperature", 0.0)
-    st.session_state.query = st.session_state.get("query", "retriever")
-    st.session_state.external = st.session_state.get("external", "PubMed")
     
     # Initialize session
     if "messages" not in st.session_state:

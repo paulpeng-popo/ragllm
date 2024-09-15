@@ -4,5 +4,5 @@
 .mypy_cache/
 selenium_loader/
 chromadb/
-data/*
-!data/db.sqlite
+data/
+*.sqlite

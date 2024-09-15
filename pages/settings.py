@@ -23,20 +23,10 @@ def main():
     )
     st.title("系統設定")
     nav_bar()
-        
-    doc_names = requests.get(
-        "http://140.116.245.154:8510/retriever",
-    ).json()
     
     collections = requests.get(
         "http://140.116.245.154:8510"
     ).json()["collections"]
-
-    df = pd.DataFrame(
-        doc_names,
-        columns=["文件名稱"],
-        index=range(1, len(doc_names) + 1)
-    )
     
     col1, col2 = st.columns(2)
     
@@ -63,7 +53,7 @@ def main():
             "選擇向量資料庫",
             collections,
             index=collections.index(st.session_state.query),
-            label_visibility="hidden"
+            label_visibility="hidden",
         )
         st.markdown("---")
         st.subheader("外部資料庫預設網址")
@@ -75,6 +65,14 @@ def main():
         )
     
     with col2:
+        doc_names = requests.get(
+            "http://140.116.245.154:8510/{}".format(st.session_state.query)
+        ).json()
+        df = pd.DataFrame(
+            doc_names,
+            columns=["文件名稱"],
+            index=range(1, len(doc_names) + 1)
+        )
         st.subheader("向量資料庫內容")
         st.dataframe(df, use_container_width=True, height=500)
 

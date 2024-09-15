@@ -29,6 +29,11 @@ def main():
         config["pre-authorized"],
     )
     
+    st.session_state.model_mode = st.session_state.get("model_mode", "qwen2:7b")
+    st.session_state.temperature = st.session_state.get("temperature", 0.0)
+    st.session_state.query = st.session_state.get("query", "retriever")
+    st.session_state.external = st.session_state.get("external", "PubMed")
+    
     try:
         authenticator.login(
             fields={"Username": "使用者名稱", "Password": "密碼"},

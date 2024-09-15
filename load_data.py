@@ -1,97 +1,238 @@
+import os
+import io
+import fitz # type: ignore
+import pymupdf # type: ignore
+import camelot # type: ignore
 import requests
 import traceback
+import pdfplumber
+import pytesseract # type: ignore
 
+from pathlib import Path
+from PIL import Image, ImageStat
 from modules.basic import DATA_DIR
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PDFPlumberLoader
+from langchain_community.document_loaders import UnstructuredExcelLoader
+from langchain_community.document_loaders import UnstructuredWordDocumentLoader
+from langchain_community.document_loaders import UnstructuredPowerPointLoader
 
 
-# def extract_tables_from_pdf(pdf_path, page_number):
-#     tables = []
-#     with pdfplumber.open(pdf_path) as pdf:
-#         # print("page_number:", pdf.pages[page_number])
-#         tables.extend(pdf.pages[page_number].extract_tables())
-#     return tables
-
-
-# # import fitz
-# import pytesseract
-# from PIL import Image, ImageStat
-# import io, os
-
-
-# def is_image_black(image):
-#     stat = ImageStat.Stat(image)
-#     if sum(stat.extrema[0]) == 0:
-#         return True
-#     return False
-
-# def extract_images_and_text_from_pdf(pdf_path, page_number):
-#     pdf_name = os.path.basename(pdf_path)
-#     pdf_name = os.path.splitext(pdf_name)[0]
+def get_folders():
+    # Get all folders in the data directory
+    folders = [folder for folder in DATA_DIR.iterdir() if folder.is_dir()]
+    yield from folders
     
-#     pdf_document = fitz.open(pdf_path)
-#     page = pdf_document.load_page(page_number)
-#     images_with_text = []
     
-#     image_list = page.get_images(full=True)
-#     for img_index, img in enumerate(image_list):
-#         xref = img[0]
-#         base_image = pdf_document.extract_image(xref)
-#         image_bytes = base_image["image"]
-#         image_ext = base_image["ext"]
-#         image = Image.open(io.BytesIO(image_bytes))
-
-#         if is_image_black(image):
-#             continue
+def get_files_recursive(folder):
+    # Get all files in the folder and its subfolders
+    for file in folder.iterdir():
+        if file.is_file():
+            yield file
+        elif file.is_dir():
+            yield from get_files_recursive(file)
+            
+            
+def classify_files(file_paths):
+    pic_types = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
+    video_types = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv"]
+    ppt_types = [".ppt", ".pptx"]
+    doc_types = [".doc", ".docx"]
+    xls_types = [".xls", ".xlsx"]
+    pic_files = []
+    video_files = []
+    pdfs = []
+    excels = []
+    words = []
+    ppts = []
+    others = []
+    for file_path in file_paths:
+        file_ext = file_path.suffix.lower()
+        if file_ext in pic_types:
+            pic_files.append(file_path)
+        elif file_ext in video_types:
+            video_files.append(file_path)
+        elif file_ext == ".pdf":
+            pdfs.append(file_path)
+        elif file_ext in xls_types:
+            excels.append(file_path)
+        elif file_ext in doc_types:
+            words.append(file_path)
+        elif file_ext in ppt_types:
+            ppts.append(file_path)
+        else:
+            others.append(file_path)
+    return {
+        "pictures": pic_files, # ocr, multi-modal
+        "videos": video_files, #ignore
+        "pdfs": pdfs,
+        "excels": excels,
+        "words": words,
+        "ppts": ppts,
+        "others": others #ignore
+    }
+    
+    
+class Image2Text:
+    def __init__(self, image_path):
+        self.image_path = image_path
+        self.image = Image.open(image_path)
         
-#         image_filename = f"{pdf_name}_image_{page_number + 1}_{img_index + 1}.{image_ext}"
-#         with open(image_filename, "wb") as image_file:
-#             image_file.write(image_bytes)
+    def extract_text(self):
+        return pytesseract.image_to_string(self.image)
+    
 
-#         text = pytesseract.image_to_string(image)
-#         images_with_text.append({'image_filename': image_filename, 'text': text})
+class TableExtractor:
+    def __init__(self, pdf_path, page_number):
+        self.pdf_path = pdf_path
+        self.page_number = page_number
+        self.pdf_document = fitz.open(pdf_path)
+        self.page = self.pdf_document.load_page(page_number)
+        
+    def extract_tables(self):
+        tables = camelot.read_pdf(self.pdf_path, pages=str(self.page_number + 1))
+        # to markdown format
+        return tables[0].df.to_markdown()
 
-#     return images_with_text
+
+class PDFLoader:
+    def __init__(self, path):
+        self.path = path
+        self.loader = PDFPlumberLoader(path)
+        
+    def load(self):
+        return self.loader.load()
+    
+    
+class ExcelLoader:
+    def __init__(self, path):
+        self.path = path
+        self.loader = UnstructuredExcelLoader(path)
+        
+    def load(self):
+        return self.loader.load()
+    
+    
+class WordLoader:
+    def __init__(self, path):
+        self.path = path
+        self.loader = UnstructuredWordDocumentLoader(path)
+        
+    def load(self):
+        return self.loader.load()
+    
+    
+class PowerPointLoader:
+    def __init__(self, path):
+        self.path = path
+        self.loader = UnstructuredPowerPointLoader(path)
+        
+    def load(self):
+        return self.loader.load()
 
 
-def process_documents(collection_name="retriever"):
-    file_loader = PyPDFDirectoryLoader(
-        path=DATA_DIR.as_posix(),
-        glob="**/*.pdf"
+def is_image_black(image):
+    stat = ImageStat.Stat(image)
+    if sum(stat.extrema[0]) == 0:
+        return True
+    return False
+
+
+def extract_images_and_text_from_pdf(pdf_path, page_number):
+    pdf_name = os.path.basename(pdf_path)
+    pdf_name = os.path.splitext(pdf_name)[0]
+    
+    pdf_document = fitz.open(pdf_path)
+    page = pdf_document.load_page(page_number)
+    images_with_text = []
+    
+    image_list = page.get_images(full=True)
+    for img_index, img in enumerate(image_list):
+        xref = img[0]
+        base_image = pdf_document.extract_image(xref)
+        image_bytes = base_image["image"]
+        image_ext = base_image["ext"]
+        image = Image.open(io.BytesIO(image_bytes))
+        if is_image_black(image):
+            continue
+        text = pytesseract.image_to_string(image)
+        images_with_text.append({"text": text})
+
+    return images_with_text
+
+
+def process_files(file_types):
+    pdfs = file_types["pdfs"]
+    pdf_documents = []
+    for pdf_path in pdfs:
+        pdf_loader = PDFLoader(str(pdf_path))
+        pdf_documents.extend(pdf_loader.load())
+        
+    excels = file_types["excels"]
+    excel_documents = []
+    for excel_path in excels:
+        excel_loader = ExcelLoader(str(excel_path))
+        excel_documents.extend(excel_loader.load())
+        
+    words = file_types["words"]
+    word_documents = []
+    for word_path in words:
+        word_loader = WordLoader(str(word_path))
+        word_documents.extend(word_loader.load())
+        
+    ppts = file_types["ppts"]
+    ppt_documents = []
+    for ppt_path in ppts:
+        ppt_loader = PowerPointLoader(str(ppt_path))
+        ppt_documents.extend(ppt_loader.load())
+        
+    return {
+        "pdfs": pdf_documents,
+        # "excels": excel_documents,
+        # "words": word_documents,
+        # "ppts": ppt_documents
+    }
+
+
+    # for doc in documents:
+    #     pdf_path = doc.metadata["source"]
+    #     page_num = doc.metadata["page"]
+    #     tables = extract_tables_from_pdf(pdf_path, page_num)
+    #     images_with_text = extract_images_and_text_from_pdf(pdf_path, page_num)
+    #     doc.metadata["tables"] = tables
+    #     doc.metadata["images_with_text"] = images_with_text
+
+
+def create_collection(collection_name, documents):
+    res = requests.post(
+        f"http://140.116.245.154:8510/{collection_name}",
+        json={
+            "documents": [
+                {
+                    "source": doc.metadata["source"],
+                    "page": doc.metadata["page"],
+                    "page_content": doc.page_content
+                }
+                for doc in documents
+            ]
+        }
     )
-    try:
-        documents = file_loader.load()
-        res = requests.post(
-            "http://140.116.245.154:8510/" + collection_name,
-            json={
-                "documents": [
-                    {
-                        "source": doc.metadata["source"],
-                        "page": doc.metadata["page"],
-                        "page_content": doc.page_content
-                    }
-                    for doc in documents
-                ]
-            }
-        )
-        print(res.json())
-        # for doc in documents:
-        #     pdf_path = doc.metadata["source"]
-        #     page_num = doc.metadata["page"]
-        #     tables = extract_tables_from_pdf(pdf_path, page_num)
-        #     images_with_text = extract_images_and_text_from_pdf(pdf_path, page_num)
-        #     doc.metadata["tables"] = tables
-        #     doc.metadata["images_with_text"] = images_with_text
-    except Exception as e:
-        print("Error:", e)
-        traceback.print_exc()
-        
-        
+    print(res.json())
+
+
 def remove_collection(collection_name):
     res = requests.delete(f"http://140.116.245.154:8510/{collection_name}")
     print(res.json())
 
 
 if __name__ == "__main__":
-    process_documents()
-    # remove_collection("retriever")
+    for folder in get_folders():
+        if folder.name in ["[02] 健保 & 自費資料", "亞仕丹", "呼吸監控咬口器", "坦帕", "奇匯", "金泰克", "HuHu 購物"]:
+            continue
+        files = [file for file in get_files_recursive(folder)]
+        file_types = classify_files(files)
+        document_types = process_files(file_types)
+        collection_name = folder.name
+        print(f"Creating collection {collection_name}...")
+        for doc_type, documents in document_types.items():
+            print(f"Processing {doc_type} documents...")
+            create_collection(collection_name, documents)
