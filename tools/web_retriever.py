@@ -1,4 +1,3 @@
-# type: ignore
 import os
 import requests
 import nest_asyncio
@@ -17,7 +16,7 @@ headers = {
 }
 
 
-def search_pubmed(term):
+def search_pubmed(term, top_k=3):
     url = "https://pubmed.ncbi.nlm.nih.gov"
     response = requests.get(url, headers=headers, params={
         "term": term,
@@ -29,33 +28,42 @@ def search_pubmed(term):
     for article in articles:
         response = requests.get(url + article["href"], headers=headers)
         soup = BeautifulSoup(response.text, "html.parser")
-        link = soup.find("div", class_="full-text-links-list").find_all("a", class_="link-item")[-1]["href"]
+        try:
+            link = soup.find("div", class_="full-text-links-list").find_all("a", class_="link-item")[-1]["href"]
+        except:
+            continue
         article_metadata = {
             "title": article.text.strip(),
             "url": link,
         }
         article_metadatas.append(article_metadata)
-    urls = [article_metadata["url"] for article_metadata in article_metadatas]
-    loader = WebBaseLoader(urls)
-    loader.default_parser = "html.parser"
-    loader.requests_per_second = 10
+    urls = [
+        article_metadata["url"]
+        for article_metadata in article_metadatas
+    ][:top_k]
+    loader = WebBaseLoader(
+        urls,
+        default_parser="html.parser",
+        requests_per_second=10,
+    )
     docs = loader.aload()
     docs = [
         Document(
             page_content=str(doc.page_content).replace("\n\n", " ").strip(),
             metadata={
                 "source": str(doc.metadata["title"]).strip(),
-                "page": str(doc.metadata["source"]).strip(),
+                "link": str(doc.metadata["source"]).strip(),
             }
         )
         for doc in docs
     ]
-    return docs[:3]
+    return docs
 
 
 if __name__ == "__main__":
     term = "Root Canal Treatment"
     docs = search_pubmed(term)
-    for doc in docs[:1]:
-        print(doc.page_content)
+    for doc in docs:
+        print(doc.metadata)
+        print(doc.page_content[:100])
         print()

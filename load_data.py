@@ -1,20 +1,12 @@
-import os
-import io
-import fitz # type: ignore
-import pymupdf # type: ignore
-import camelot # type: ignore
-import requests
-import traceback
-import pdfplumber
-import pytesseract # type: ignore
-
 from pathlib import Path
-from PIL import Image, ImageStat
-from modules.basic import DATA_DIR
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_community.document_loaders import UnstructuredExcelLoader
 from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 from langchain_community.document_loaders import UnstructuredPowerPointLoader
+
+
+PARENT_DIR = Path(__file__).resolve().parent
+DATA_DIR = PARENT_DIR.joinpath("data")
 
 
 def get_folders():
@@ -33,25 +25,28 @@ def get_files_recursive(folder):
             
             
 def classify_files(file_paths):
-    pic_types = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
-    video_types = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv"]
+    pic_types = [".jpg", ".jpeg", ".png"]
+    video_types = [".mp4"]
+    pdf_types = [".pdf"]
     ppt_types = [".ppt", ".pptx"]
     doc_types = [".doc", ".docx"]
     xls_types = [".xls", ".xlsx"]
+    
     pic_files = []
     video_files = []
     pdfs = []
-    excels = []
-    words = []
     ppts = []
+    words = []
+    excels = []
     others = []
+    
     for file_path in file_paths:
         file_ext = file_path.suffix.lower()
         if file_ext in pic_types:
             pic_files.append(file_path)
         elif file_ext in video_types:
             video_files.append(file_path)
-        elif file_ext == ".pdf":
+        elif file_ext in pdf_types:
             pdfs.append(file_path)
         elif file_ext in xls_types:
             excels.append(file_path)
@@ -65,33 +60,11 @@ def classify_files(file_paths):
         "pictures": pic_files, # ocr, multi-modal
         "videos": video_files, #ignore
         "pdfs": pdfs,
-        "excels": excels,
-        "words": words,
         "ppts": ppts,
+        "words": words,
+        "excels": excels,
         "others": others #ignore
     }
-    
-    
-class Image2Text:
-    def __init__(self, image_path):
-        self.image_path = image_path
-        self.image = Image.open(image_path)
-        
-    def extract_text(self):
-        return pytesseract.image_to_string(self.image)
-    
-
-class TableExtractor:
-    def __init__(self, pdf_path, page_number):
-        self.pdf_path = pdf_path
-        self.page_number = page_number
-        self.pdf_document = fitz.open(pdf_path)
-        self.page = self.pdf_document.load_page(page_number)
-        
-    def extract_tables(self):
-        tables = camelot.read_pdf(self.pdf_path, pages=str(self.page_number + 1))
-        # to markdown format
-        return tables[0].df.to_markdown()
 
 
 class PDFLoader:
@@ -101,8 +74,8 @@ class PDFLoader:
         
     def load(self):
         return self.loader.load()
-    
-    
+
+
 class ExcelLoader:
     def __init__(self, path):
         self.path = path
@@ -110,8 +83,8 @@ class ExcelLoader:
         
     def load(self):
         return self.loader.load()
-    
-    
+
+
 class WordLoader:
     def __init__(self, path):
         self.path = path
@@ -119,8 +92,8 @@ class WordLoader:
         
     def load(self):
         return self.loader.load()
-    
-    
+
+
 class PowerPointLoader:
     def __init__(self, path):
         self.path = path
@@ -130,36 +103,6 @@ class PowerPointLoader:
         return self.loader.load()
 
 
-def is_image_black(image):
-    stat = ImageStat.Stat(image)
-    if sum(stat.extrema[0]) == 0:
-        return True
-    return False
-
-
-def extract_images_and_text_from_pdf(pdf_path, page_number):
-    pdf_name = os.path.basename(pdf_path)
-    pdf_name = os.path.splitext(pdf_name)[0]
-    
-    pdf_document = fitz.open(pdf_path)
-    page = pdf_document.load_page(page_number)
-    images_with_text = []
-    
-    image_list = page.get_images(full=True)
-    for img_index, img in enumerate(image_list):
-        xref = img[0]
-        base_image = pdf_document.extract_image(xref)
-        image_bytes = base_image["image"]
-        image_ext = base_image["ext"]
-        image = Image.open(io.BytesIO(image_bytes))
-        if is_image_black(image):
-            continue
-        text = pytesseract.image_to_string(image)
-        images_with_text.append({"text": text})
-
-    return images_with_text
-
-
 def process_files(file_types):
     pdfs = file_types["pdfs"]
     pdf_documents = []
@@ -167,11 +110,11 @@ def process_files(file_types):
         pdf_loader = PDFLoader(str(pdf_path))
         pdf_documents.extend(pdf_loader.load())
         
-    excels = file_types["excels"]
-    excel_documents = []
-    for excel_path in excels:
-        excel_loader = ExcelLoader(str(excel_path))
-        excel_documents.extend(excel_loader.load())
+    ppts = file_types["ppts"]
+    ppt_documents = []
+    for ppt_path in ppts:
+        ppt_loader = PowerPointLoader(str(ppt_path))
+        ppt_documents.extend(ppt_loader.load())
         
     words = file_types["words"]
     word_documents = []
@@ -179,60 +122,40 @@ def process_files(file_types):
         word_loader = WordLoader(str(word_path))
         word_documents.extend(word_loader.load())
         
-    ppts = file_types["ppts"]
-    ppt_documents = []
-    for ppt_path in ppts:
-        ppt_loader = PowerPointLoader(str(ppt_path))
-        ppt_documents.extend(ppt_loader.load())
+    excels = file_types["excels"]
+    excel_documents = []
+    for excel_path in excels:
+        excel_loader = ExcelLoader(str(excel_path))
+        excel_documents.extend(excel_loader.load())
         
     return {
         "pdfs": pdf_documents,
-        # "excels": excel_documents,
-        # "words": word_documents,
-        # "ppts": ppt_documents
+        "ppts": ppt_documents,
+        "words": word_documents,
+        "excels": excel_documents,
     }
 
 
-    # for doc in documents:
-    #     pdf_path = doc.metadata["source"]
-    #     page_num = doc.metadata["page"]
-    #     tables = extract_tables_from_pdf(pdf_path, page_num)
-    #     images_with_text = extract_images_and_text_from_pdf(pdf_path, page_num)
-    #     doc.metadata["tables"] = tables
-    #     doc.metadata["images_with_text"] = images_with_text
-
-
-def create_collection(collection_name, documents):
-    res = requests.post(
-        f"http://140.116.245.154:8510/{collection_name}",
-        json={
-            "documents": [
-                {
-                    "source": doc.metadata["source"],
-                    "page": doc.metadata["page"],
-                    "page_content": doc.page_content
-                }
-                for doc in documents
-            ]
-        }
-    )
-    print(res.json())
-
-
-def remove_collection(collection_name):
-    res = requests.delete(f"http://140.116.245.154:8510/{collection_name}")
-    print(res.json())
-
-
 if __name__ == "__main__":
-    for folder in get_folders():
-        if folder.name in ["[02] 健保 & 自費資料", "亞仕丹", "呼吸監控咬口器", "坦帕", "奇匯", "金泰克", "HuHu 購物"]:
-            continue
-        files = [file for file in get_files_recursive(folder)]
+    from chromaAPI import create_collection
+    for i, folder in enumerate(get_folders()):
+        print(f"Processing folder {i+1}: {folder.name}")
+        files = [f for f in get_files_recursive(folder)]
         file_types = classify_files(files)
         document_types = process_files(file_types)
         collection_name = folder.name
-        print(f"Creating collection {collection_name}...")
         for doc_type, documents in document_types.items():
-            print(f"Processing {doc_type} documents...")
+            print(f"Processing {len(documents)} {doc_type} documents...")
             create_collection(collection_name, documents)
+    
+    # all folder create a collection named "all"
+    all_documents = []
+    for folder in get_folders():
+        files = [f for f in get_files_recursive(folder)]
+        file_types = classify_files(files)
+        document_types = process_files(file_types)
+        for doc_type, documents in document_types.items():
+            all_documents.extend(documents)
+    create_collection("all", all_documents)
+    
+    print("All documents processed.")
