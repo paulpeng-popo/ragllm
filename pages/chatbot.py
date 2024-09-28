@@ -124,7 +124,7 @@ def get_gemini(query):
 
 
 def other_source_answer(query, stype):
-    if st.session_state.web_search:
+    if st.session_state.gemini:
         if stype == "gemini":
             try:
                 response, resource = get_gemini(query)
@@ -136,7 +136,8 @@ def other_source_answer(query, stype):
             except Exception as e:
                 print("Gemini Error:", e)
                 return None
-        elif stype == "chatgpt":
+    if st.session_state.chatgpt:
+        if stype == "chatgpt":
             try:
                 response, resource = get_chatgpt(query)
                 return {
@@ -147,7 +148,8 @@ def other_source_answer(query, stype):
             except Exception as e:
                 print("ChatGPT Error:", e)
                 return None
-        elif stype == "perplexity":
+    if st.session_state.perplexity:
+        if stype == "perplexity":
             try:
                 response, resource = get_perplexity(query)
                 return {
@@ -158,8 +160,7 @@ def other_source_answer(query, stype):
             except Exception as e:
                 print("Perplexity Error:", e)
                 return None
-    else:
-        return None
+    return None
 
 
 def query_llm(query, model="qwen2:7b", temperature=0):
@@ -182,8 +183,8 @@ def query_llm(query, model="qwen2:7b", temperature=0):
     else:
         # if user wants to search the web
         if st.session_state.web_search:
-            st.info("使用外部資料回答問題")
-            with st.spinner("搜尋外部資料中..."):
+            st.info("使用 PubMed 資料回答問題")
+            with st.spinner("搜尋 PubMed 資料中..."):
                 en_query = translate(query)
                 web_docs = search_pubmed(en_query)
                 create_collection(
@@ -210,7 +211,7 @@ def query_llm(query, model="qwen2:7b", temperature=0):
         "query": query,
         "context": "\n\n".join([doc.page_content for doc in ref_docs])
     })
-    if st.session_state.web_search:
+    if st.session_state.google_search:
         try:
             google_results = search_google(query)
             create_collection(
@@ -303,7 +304,7 @@ def main():
         perplexity_answer
     ) in enumerate(st.session_state.messages):
         st.chat_message("User").write(model_answer["query"])
-        st.markdown("### LLM + PubMed RAG")
+        st.markdown("### LLM with RAG")
         display_references(model_answer["references"])
         st.chat_message("AI").write(model_answer["response"])
         streamlit_feedback(

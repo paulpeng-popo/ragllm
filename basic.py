@@ -16,6 +16,22 @@ def initialize_session():
         "web_search",
         False
     )
+    st.session_state.google_search = st.session_state.get(
+        "google_search",
+        False
+    )
+    st.session_state.gemini = st.session_state.get(
+        "gemini",
+        False
+    )
+    st.session_state.chatgpt = st.session_state.get(
+        "chatgpt",
+        False
+    )
+    st.session_state.perplexity = st.session_state.get(
+        "perplexity",
+        False
+    )
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
@@ -87,10 +103,38 @@ def nav_bar(show_settings=True):
         st.markdown("---")
         
         st.session_state.web_search = st.toggle(
-            "搜尋外部資料",
+            "搜尋 PubMed",
             st.session_state.get("web_search", False),
             on_change=change_value,
             args=("web_search", st.session_state.web_search)
+        )
+        
+        st.session_state.google_search = st.toggle(
+            "Google 搜尋",
+            st.session_state.get("google_search", False),
+            on_change=change_value,
+            args=("google_search", st.session_state.google_search)
+        )
+        
+        st.session_state.gemini = st.toggle(
+            "Gemini",
+            st.session_state.get("gemini", False),
+            on_change=change_value,
+            args=("gemini", st.session_state.gemini)
+        )
+        
+        st.session_state.chatgpt = st.toggle(
+            "ChatGPT",
+            st.session_state.get("chatgpt", False),
+            on_change=change_value,
+            args=("chatgpt", st.session_state.chatgpt)
+        )
+        
+        st.session_state.perplexity = st.toggle(
+            "Perplexity",
+            st.session_state.get("perplexity", False),
+            on_change=change_value,
+            args=("perplexity", st.session_state.perplexity)
         )
         
         st.markdown("---")
@@ -122,4 +166,8 @@ def nav_bar(show_settings=True):
             print("model:", st.session_state.model)
             print("collection:", st.session_state.collection)
             print("web_search:", st.session_state.web_search)
+            print("google_search:", st.session_state.google_search)
+            print("gemini:", st.session_state.gemini)
+            print("chatgpt:", st.session_state.chatgpt)
+            print("perplexity:", st.session_state.perplexity)
             print("==================")
