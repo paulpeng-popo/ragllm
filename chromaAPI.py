@@ -133,9 +133,9 @@ def search_collection(
     )
     retriever = vectorstore.as_retriever(
         # search_type="mmr",
-        # search_kwargs={"k": 6, "lambda_mult": 0.25}
+        # search_kwargs={"k": 4, "lambda_mult": 0.25}
         search_type="similarity_score_threshold",
-        search_kwargs={"score_threshold": 0.4, 'k': 6}
+        search_kwargs={"score_threshold": 0.4, 'k': 4}
     )
     results = retriever.invoke(query)
     return results
